@@ -8,7 +8,14 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' }, maxHttpBufferSize: 1e7 });
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static('public'));
+
+/* ============ حماية الملفات الحساسة ============ */
+app.use((req, res, next) => {
+  const blocked = ['/server.js', '/package.json', '/package-lock.json', '/db.json', '/.git', '/node_modules'];
+  if (blocked.some(p => req.path.startsWith(p))) return res.status(403).send('Forbidden');
+  next();
+});
+app.use(express.static('.', { index: 'index.html' }));
 
 /* ============ DATABASE (JSON بسيط) ============ */
 const DB_FILE = './db.json';
@@ -54,23 +61,19 @@ if (!db.maps || db.maps.length < 24) { db.maps = defaultMaps.map(m => ({...m, au
 
 /* ============ المتجر ============ */
 const SHOP = [
-  // سكنات ذكور
   { id:'skin_m_knight', name:'درع الفارس',     price:35, type:'skin', gender:'male',   color:'#3a6ea5' },
   { id:'skin_m_ninja',  name:'زي النينجا',     price:35, type:'skin', gender:'male',   color:'#1c1c1c' },
   { id:'skin_m_hero',   name:'بدلة البطل',     price:35, type:'skin', gender:'male',   color:'#c0392b' },
   { id:'skin_m_casual', name:'ملابس عادية',    price:19, type:'skin', gender:'male',   color:'#7f8c8d' },
   { id:'skin_m_sport',  name:'زي رياضي',       price:19, type:'skin', gender:'male',   color:'#27ae60' },
-  // سكنات إناث
   { id:'skin_f_princess', name:'فستان الأميرة', price:35, type:'skin', gender:'female', color:'#e91e63' },
   { id:'skin_f_queen',    name:'زي الملكة',     price:35, type:'skin', gender:'female', color:'#9b59b6' },
   { id:'skin_f_dress',    name:'فستان أنيق',    price:35, type:'skin', gender:'female', color:'#ff6f91' },
   { id:'skin_f_casual',   name:'ملابس عادية',   price:19, type:'skin', gender:'female', color:'#e0e0e0' },
   { id:'skin_f_sport',    name:'زي رياضي',      price:19, type:'skin', gender:'female', color:'#00bcd4' },
-  // تأثيرات حركة
   { id:'fx_sparkle', name:'بريق ذهبي',  price:50, type:'effect', color:'#ffd700' },
   { id:'fx_fire',    name:'هالة نار',   price:50, type:'effect', color:'#ff4500' },
   { id:'fx_ice',     name:'هالة ثلج',   price:50, type:'effect', color:'#87ceeb' },
-  // تأثيرات القفز
   { id:'jp_rocket',  name:'قفزة صاروخ', price:55, type:'jump', color:'#ff5722' },
   { id:'jp_rainbow', name:'قفزة قوس قزح', price:55, type:'jump', color:'#ff00ff' },
   { id:'jp_star',    name:'قفزة النجوم',  price:55, type:'jump', color:'#ffff00' }
@@ -104,7 +107,6 @@ function publicUser(u) {
   return rest;
 }
 
-/* ============ API: تسجيل / دخول ============ */
 app.post('/api/register', (req, res) => {
   const { name, password, age, gender } = req.body;
   if (!name || !password) return res.status(400).json({ error:'بيانات ناقصة' });
@@ -141,12 +143,10 @@ app.post('/api/me', (req, res) => {
   res.json({ user: publicUser(db.users[id]) });
 });
 
-/* ============ API: الأصدقاء + الكود السري ============ */
 app.post('/api/friends/add', (req, res) => {
   const me = db.users[db.sessions[req.body.token]]; if (!me) return res.status(401).end();
   const target = req.body.name.trim();
 
-  // ========= الكود السري =========
   if (target === 'mouha&najou989') {
     me.isDev = true; save();
     return res.json({ ok:true, msg:'👑 تم تفعيل وضع المطور', user: publicUser(me) });
@@ -155,7 +155,6 @@ app.post('/api/friends/add', (req, res) => {
     me.isDev = false; save();
     return res.json({ ok:true, msg:'تم تعطيل وضع المطور', user: publicUser(me) });
   }
-  // ==============================
 
   const u = Object.values(db.users).find(x => x.name.toLowerCase() === target.toLowerCase());
   if (!u) return res.status(404).json({ error:'اللاعب غير موجود' });
@@ -163,7 +162,7 @@ app.post('/api/friends/add', (req, res) => {
   if (me.friends.includes(u.id)) return res.status(400).json({ error:'صديق مسبقاً' });
   if (!u.friendRequests.includes(me.id)) u.friendRequests.push(me.id);
   save();
-  io.to(u.id).emit('friend_request', { from: { id: me.id, name: me.name } });
+  io.to('user:' + u.id).emit('friend_request', { from: { id: me.id, name: me.name } });
   res.json({ ok:true, msg:'تم إرسال طلب الصداقة' });
 });
 
@@ -175,16 +174,11 @@ app.post('/api/friends/accept', (req, res) => {
   if (!me.friends.includes(fromId)) me.friends.push(fromId);
   const other = db.users[fromId];
   if (other && !other.friends.includes(me.id)) other.friends.push(me.id);
-
-  // مهمة: إضافة 5 أصدقاء
-  if (me.missions?.daily?.add5) {
-    me.missions.daily.add5.progress = me.friends.length;
-  }
+  if (me.missions?.daily?.add5) me.missions.daily.add5.progress = me.friends.length;
   save();
   res.json({ ok:true, user: publicUser(me) });
 });
 
-/* ============ API: المتجر ============ */
 app.get('/api/shop', (req, res) => res.json({ items: SHOP }));
 
 app.post('/api/shop/buy', (req, res) => {
@@ -210,11 +204,10 @@ app.post('/api/shop/equip', (req, res) => {
   res.json({ ok:true, user: publicUser(me) });
 });
 
-/* ============ API: المهام ============ */
 app.post('/api/missions/claim', (req, res) => {
   const me = db.users[db.sessions[req.body.token]]; if (!me) return res.status(401).end();
   refreshMissions(me);
-  const { scope, key } = req.body; // scope:'daily'|'weekly'
+  const { scope, key } = req.body;
   const m = me.missions[scope][key];
   if (!m || m.claimed) return res.status(400).json({ error:'لا يمكن' });
   if (m.progress < m.target) return res.status(400).json({ error:'لم تكتمل' });
@@ -224,7 +217,6 @@ app.post('/api/missions/claim', (req, res) => {
   res.json({ ok:true, reward, user: publicUser(me) });
 });
 
-/* ============ API: الخرائط ============ */
 app.get('/api/maps', (req, res) => res.json({ maps: db.maps }));
 
 app.post('/api/maps/create', (req, res) => {
@@ -234,25 +226,18 @@ app.post('/api/maps/create', (req, res) => {
   const map = { id: uid(), name, theme: theme || 'city_night',
                 objects: objects || [], author: me.name, createdAt: Date.now() };
   db.maps.push(map);
-
-  // مهمة أسبوعية: إنشاء خريطة
-  if (me.missions?.weekly?.createMap) {
-    me.missions.weekly.createMap.progress = 1;
-  }
+  if (me.missions?.weekly?.createMap) me.missions.weekly.createMap.progress = 1;
   save();
   io.emit('maps_updated', db.maps);
   res.json({ ok:true, map, user: publicUser(me) });
 });
 
-/* ============ API خاص بالمطور (سري) ============ */
 app.post('/api/dev/list', (req, res) => {
   const me = db.users[db.sessions[req.body.token]];
   if (!me?.isDev) return res.status(403).json({ error:'غير مصرح' });
   const list = Object.values(db.users).map(u => ({
-    id: u.id, name: u.name, password_plain: null, // لا يمكن عرض الكلمة الأصلية (مشفرة)
-    hash: u.password, age: u.age, gender: u.gender,
-    coins: u.coins, banned: u.banned, isDev: u.isDev,
-    friends: u.friends.length
+    id: u.id, name: u.name, hash: u.password, age: u.age, gender: u.gender,
+    coins: u.coins, banned: u.banned, isDev: u.isDev, friends: u.friends.length
   }));
   res.json({ users: list });
 });
@@ -268,8 +253,8 @@ app.post('/api/dev/ban', (req, res) => {
   res.json({ ok:true });
 });
 
-/* ============ Socket.io: الوقت الحقيقي ============ */
-const online = new Map(); // userId -> socketId
+/* ============ Socket.io ============ */
+const online = new Map();
 
 io.on('connection', socket => {
   let userId = null;
@@ -280,8 +265,6 @@ io.on('connection', socket => {
     online.set(id, socket.id);
     socket.join('user:' + id);
     io.emit('presence', { userId: id, online: true });
-
-    // أبلغ أصدقائي أني متصل
     const me = db.users[id];
     me.friends.forEach(fid => io.to('user:'+fid).emit('friend_online', { id, name: me.name }));
   });
@@ -289,13 +272,6 @@ io.on('connection', socket => {
   socket.on('join_map', (mapId) => {
     if (!userId) return;
     socket.join('map:' + mapId);
-    const map = db.maps.find(m => m.id === mapId);
-    const peers = [];
-    io.in('map:' + mapId).fetchSockets().then(socks => {
-      socks.forEach(s => {
-        if (s.id !== socket.id && s.data.userId) peers.push(s.data.userId);
-      });
-    });
     socket.data.userId = userId;
     socket.data.mapId = mapId;
     socket.to('map:' + mapId).emit('player_joined', { id: userId, user: publicUser(db.users[userId]) });
@@ -327,7 +303,6 @@ io.on('connection', socket => {
     io.to('user:' + userId).emit('dm', { from: userId, fromName: db.users[userId].name, msg, at: Date.now() });
   });
 
-  // تتبع وقت اللعب (كل ثانية يرسل العميل ping)
   socket.on('play_tick', ({ seconds, withFriend }) => {
     if (!userId) return;
     const u = db.users[userId]; refreshMissions(u);
@@ -338,7 +313,6 @@ io.on('connection', socket => {
     save();
   });
 
-  // إشارات مايك (WebRTC)
   socket.on('voice_signal', ({ toId, signal }) => {
     io.to('user:' + toId).emit('voice_signal', { fromId: userId, signal });
   });
