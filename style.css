@@ -1,0 +1,57 @@
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+body { background: #0f1220; color: #fff; overflow: hidden; user-select: none; }
+.hidden { display: none !important; }
+
+.screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+#home { align-items: flex-start; }
+
+/* Auth */
+.card { background: #1a1e35; padding: 30px; border-radius: 18px; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+.card h1 { text-align: center; margin-bottom: 20px; }
+.tabs, .tabs-main { display: flex; gap: 8px; margin-bottom: 15px; }
+.tabs button, .tabs-main button { flex: 1; padding: 10px; background: #2a3050; color: #aab; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; }
+.tabs button.active, .tabs-main button.active { background: #4a6cf7; color: #fff; }
+.tab { display: none; flex-direction: column; gap: 10px; }
+.tab.active { display: flex; }
+input, select, button { padding: 12px; border-radius: 10px; border: none; background: #232945; color: #fff; font-size: 15px; outline: none; }
+button { cursor: pointer; background: #4a6cf7; font-weight: 600; transition: .15s; }
+button:hover { filter: brightness(1.15); }
+.msg { margin-top: 10px; font-size: 14px; min-height: 20px; }
+
+/* Home */
+#home { flex-direction: column; padding: 0; overflow-y: auto; }
+header { display: flex; align-items: center; gap: 15px; padding: 12px 20px; background: #161a30; width: 100%; position: sticky; top: 0; z-index: 10; }
+.logo { font-size: 20px; font-weight: 800; flex: 1; }
+.coins { background: #2a3050; padding: 6px 14px; border-radius: 20px; font-weight: 700; }
+.user-info { display: flex; gap: 8px; align-items: center; background: #2a3050; padding: 6px 14px; border-radius: 20px; }
+
+.tabs-main { padding: 10px 20px; background: #12162b; width: 100%; flex-wrap: wrap; }
+.view { display: none; padding: 20px; width: 100%; }
+.view.active { display: block; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-top: 12px; }
+.grid > div { background: #1c2140; padding: 15px; border-radius: 12px; cursor: pointer; transition: .15s; border: 2px solid transparent; }
+.grid > div:hover { border-color: #4a6cf7; transform: translateY(-2px); }
+.row { display: flex; gap: 10px; margin-bottom: 12px; }
+.row input { flex: 1; }
+h3 { margin: 15px 0 8px; }
+#search-maps { width: 100%; max-width: 400px; }
+
+.friend-item { display: flex; gap: 10px; align-items: center; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-left: 6px; }
+.dot.online { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
+.dot.offline { background: #555; }
+
+/* Game */
+#game { position: fixed; inset: 0; }
+#canvas { width: 100%; height: 100%; display: block; }
+#hud-top { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
+#hud-top button { pointer-events: auto; background: #e74c3c; }
+#map-title { background: rgba(0,0,0,.5); padding: 8px 14px; border-radius: 10px; font-weight: 700; }
+
+#chat-box { position: absolute; bottom: 100px; left: 20px; width: 280px; height: 200px; overflow-y: auto; background: rgba(0,0,0,.35); border-radius: 10px; padding: 8px; font-size: 14px; }
+#chat-box div { margin: 4px 0; }
+#chat-input { position: absolute; bottom: 60px; left: 20px; width: 280px; }
+#btn-mic { position: absolute; bottom: 15px; left: 20px; padding: 10px 16px; border-radius: 50%; background: #4a6cf7; }
+#btn-mic.rec { background: #e74c3c; }
+
+#joystick { position: absolute; bottom: 30px; right: 30px; width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.2); display: none; }

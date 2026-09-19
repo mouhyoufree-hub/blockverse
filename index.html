@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no" />
+<title>BlockVerse</title>
+<link rel="stylesheet" href="style.css" />
+
+<!-- ===== PWA Meta Tags ===== -->
+<meta name="theme-color" content="#4a6cf7" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="BlockVerse" />
+<meta name="description" content="لعبة أونلاين شبيهة بـ Roblox" />
+<link rel="manifest" href="/manifest.json" />
+<link rel="apple-touch-icon" href="/icon-192.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+
+<!-- ===== تسجيل Service Worker ===== -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(reg => console.log('✅ Service Worker جاهز:', reg.scope))
+        .catch(err => console.log('❌ خطأ في Service Worker:', err));
+    });
+  }
+</script>
+<!-- ===== نهاية PWA ===== -->
+
+</head>
+<body>
+
+<!-- شاشة الدخول -->
+<div id="auth" class="screen">
+  <div class="card">
+    <h1>🎮 BlockVerse</h1>
+    <div class="tabs">
+      <button data-tab="login" class="active">لدي حساب</button>
+      <button data-tab="register">حساب جديد</button>
+    </div>
+    <div id="tab-login" class="tab active">
+      <input id="l-name" placeholder="اسم اللاعب" />
+      <input id="l-pass" type="password" placeholder="كلمة السر" />
+      <button id="btn-login">دخول</button>
+    </div>
+    <div id="tab-register" class="tab">
+      <input id="r-name" placeholder="اسم اللاعب" />
+      <input id="r-pass" type="password" placeholder="كلمة السر" />
+      <input id="r-age" type="number" placeholder="العمر" min="5" max="99" />
+      <select id="r-gender"><option value="male">ذكر</option><option value="female">أنثى</option></select>
+      <button id="btn-register">إنشاء الحساب</button>
+    </div>
+    <div id="auth-msg" class="msg"></div>
+  </div>
+</div>
+
+<!-- الشاشة الرئيسية -->
+<div id="home" class="screen hidden">
+  <header>
+    <div class="logo">🎮 BlockVerse</div>
+    <div class="coins">💰 <span id="coins">0</span></div>
+    <div class="user-info"><span id="me-name"></span><span id="me-avatar">👤</span></div>
+  </header>
+
+  <nav class="tabs-main">
+    <button data-view="maps" class="active">🗺️ الخرائط</button>
+    <button data-view="friends">👥 الأصدقاء</button>
+    <button data-view="shop">🛒 المتجر</button>
+    <button data-view="missions">🎯 المهام</button>
+    <button data-view="wardrobe">👕 خزنة الملابس</button>
+    <button data-view="editor">🎨 إنشاء خريطة</button>
+    <button data-view="settings">⚙️ الإعدادات</button>
+    <button data-view="dev" id="tab-dev" class="hidden">👑 المطور</button>
+  </nav>
+
+  <div id="view-maps" class="view active">
+    <input id="search-maps" placeholder="🔍 ابحث عن خريطة..." />
+    <div id="maps-list" class="grid"></div>
+  </div>
+
+  <div id="view-friends" class="view">
+    <div class="row">
+      <input id="add-friend" placeholder="اسم اللاعب..." />
+      <button id="btn-add-friend">إضافة صديق</button>
+    </div>
+    <div id="friend-reqs"></div>
+    <div id="friends-list" class="grid"></div>
+  </div>
+
+  <div id="view-shop" class="view">
+    <div id="shop-list" class="grid"></div>
+  </div>
+
+  <div id="view-missions" class="view">
+    <h3>📅 المهام اليومية</h3>
+    <div id="daily-missions"></div>
+    <h3>🗓️ المهام الأسبوعية</h3>
+    <div id="weekly-missions"></div>
+  </div>
+
+  <div id="view-wardrobe" class="view">
+    <div id="wardrobe-list" class="grid"></div>
+  </div>
+
+  <div id="view-editor" class="view">
+    <h3>🎨 محرر الخرائط</h3>
+    <input id="map-name" placeholder="اسم الخريطة" />
+    <select id="map-theme">
+      <option value="city_night">مدينة ليل</option>
+      <option value="desert">صحراء</option>
+      <option value="jungle">غابة</option>
+      <option value="snow">ثلج</option>
+      <option value="space">فضاء</option>
+      <option value="castle">قلعة</option>
+    </select>
+    <button id="btn-create-map">➕ إنشاء الخريطة</button>
+    <p style="opacity:.7;font-size:13px">سيتم إنشاء الخريطة بإعدادات جاهزة — يمكنك اللعب فيها مباشرة.</p>
+  </div>
+
+  <div id="view-settings" class="view">
+    <h3>⚙️ الإعدادات</h3>
+    <label>الجودة:
+      <select id="set-quality">
+        <option value="0.5">منخفضة (0.5x)</option>
+        <option value="1" selected>متوسطة (1x)</option>
+        <option value="1.5">عالية (1.5x)</option>
+        <option value="2">عالية جداً (2x)</option>
+        <option value="3">4K فائق (3x)</option>
+      </select>
+    </label>
+    <label>الحد الأقصى لـ FPS:
+      <select id="set-fps">
+        <option>30</option><option>60</option><option selected>120</option><option>144</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="set-shadows" /> تفعيل الظلال</label>
+  </div>
+
+  <div id="view-dev" class="view">
+    <h3>👑 لوحة المطور (سرية)</h3>
+    <div id="dev-list"></div>
+  </div>
+</div>
+
+<!-- داخل اللعبة -->
+<div id="game" class="hidden">
+  <canvas id="canvas"></canvas>
+  <div id="hud-top">
+    <div id="map-title"></div>
+    <button id="btn-leave">🚪 مغادرة الخريطة</button>
+  </div>
+  <div id="chat-box"></div>
+  <input id="chat-input" placeholder="اكتب رسالة واضغط Enter..." />
+  <button id="btn-mic">🎤</button>
+</div>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="client.js"></script>
+</body>
+</html>
